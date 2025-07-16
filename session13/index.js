@@ -3,6 +3,8 @@ const mysql = require("mysql2");
 const bodyParser = require("body-parser");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
+require("dotenv").config();
+
 
 const app = express();
 const port = 4000;
@@ -15,10 +17,11 @@ app.use(cors());
 
 // DB Connection Settings
 const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "root123",
-    database: "task_management"
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+
 })
 
 // DB Con confirmation message
