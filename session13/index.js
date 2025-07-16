@@ -77,7 +77,7 @@ app.post("/tasks/create", (req, res) => {
         `INSERT INTO tasks(taskName, taskDescription, isActive, taskCreated, user_id) VALUES (?, ?, ?, ?, ?)`;
 
     db.query(sql,
-        [taskName, taskDescription, isActive = 1, taskCreated = new Date(), user_id = 12], (err, result) => {
+        [taskName, taskDescription, isActive, taskCreated, user_id], (err, result) => {
             if (err) {
                 console.error("SQL Error:", err);
                 res.send({
