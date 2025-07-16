@@ -24,6 +24,9 @@ const db = mysql.createConnection({
 
 })
 
+
+
+
 // DB Con confirmation message
 db.connect(err => {
     if(err){
@@ -32,6 +35,39 @@ db.connect(err => {
         console.log("MySQL Database Connection is Successful!");
     }
 })
+
+
+const sql1 = `
+  CREATE TABLE IF NOT EXISTS users (
+    user_id INT AUTO_INCREMENT NOT NULL,
+    fname VARCHAR(100) NOT NULL,
+    mname VARCHAR(100) NOT NULL,
+    lname VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    pass VARCHAR(100) NOT NULL,
+    PRIMARY KEY (user_id)
+  )
+`;
+db.query(sql1, err => {
+  if (err) console.error("Table creation failed:", err);
+});
+
+const sql2 = `
+  CREATE TABLE IF NOT EXISTS tasks (
+    task_id INT AUTO_INCREMENT NOT NULL,
+    taskName VARCHAR(250) NOT NULL,
+    taskDescription VARCHAR(10000),
+    isActive BOOLEAN NOT NULL,
+    taskCreated DATE NOT NULL,
+    taskCompleted DATE NOT NULL,
+    user_id INT NOT NULL,
+    PRIMARY KEY (task_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+  )
+`;
+db.query(sql2, err => {
+  if (err) console.error("Table creation failed:", err);
+});
 
 // Routes
 // Get All Tasks for a User (Active Only)
