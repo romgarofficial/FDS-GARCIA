@@ -13,7 +13,24 @@ const port = 4000;
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(bodyParser.json());
-app.use(cors());
+const allowedOrigins = [
+    "https://ipt-garcia.vercel.app",
+    "http://localhost:4000", 
+    "http://localhost:3000"
+];
+
+app.use(cors({
+    origin: function(origin, callback) {
+        // allow requests with no origin (like mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            return callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true
+}));
 
 // DB Connection Settings
 const db = mysql.createConnection({
@@ -23,8 +40,6 @@ const db = mysql.createConnection({
     database: process.env.DB_NAME,
     port: 3306
 })
-
-
 
 
 // DB Con confirmation message
@@ -239,6 +254,14 @@ app.post("/users/register", async (req, res) => {
         })
     }
 
+    if(pass.length < 8){
+        res.send({
+            code: 0,
+            codeMessage: "password-too-short",
+            details: "Please provide a password with at least 8 characters."
+        })
+    }  
+
     const check = "SELECT * FROM users WHERE email = ?";
 
     db.query(check, [email], async (err, result) => {
@@ -327,6 +350,108 @@ app.post("/users/login", (req, res) => {
         }
     })
 })
+
+// Get specific user by ID
+app.get("/users/:user_id", (req, res) => {
+    const { user_id } = req.params;
+    const sql = "SELECT user_id, fname, mname, lname, email FROM users WHERE user_id = ?";
+    db.query(sql, [user_id], (err, result) => {
+        if (err || result.length === 0) {
+            res.send({
+                code: 0,
+                codeMessage: "user-not-found",
+                details: "Cannot find the user with the provided ID."
+            });
+        } else {
+            res.json({
+                code: 1,
+                codeMessage: "user-found",
+                details: result[0]
+            });
+        }
+    });
+});
+
+// Update user profile (name and email)
+app.put("/users/update/:user_id", (req, res) => {
+    const { user_id } = req.params;
+    const { fname, mname, lname, email } = req.body;
+    if (!fname || !mname || !lname || !email) {
+        res.send({
+            code: 0,
+            codeMessage: "some-fields-empty",
+            details: "Please fill all required fields."
+        });
+        return;
+    }
+    const sql = "UPDATE users SET fname = ?, mname = ?, lname = ?, email = ? WHERE user_id = ?";
+    db.query(sql, [fname, mname, lname, email, user_id], (err, result) => {
+        if (err || result.affectedRows === 0) {
+            res.send({
+                code: 0,
+                codeMessage: "update-failed",
+                details: "User profile update failed."
+            });
+        } else {
+            res.send({
+                code: 1,
+                codeMessage: "update-success",
+                details: "User profile updated successfully."
+            });
+        }
+    });
+});
+
+// Update user password
+app.put("/users/update-password/:user_id", async (req, res) => {
+    const { user_id } = req.params;
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+        res.send({
+            code: 0,
+            codeMessage: "some-fields-empty",
+            details: "Please provide both old and new passwords."
+        });
+        return;
+    }
+    const sqlGet = "SELECT pass FROM users WHERE user_id = ?";
+    db.query(sqlGet, [user_id], async (err, result) => {
+        if (err || result.length === 0) {
+            res.send({
+                code: 0,
+                codeMessage: "user-not-found",
+                details: "User not found."
+            });
+            return;
+        }
+        const isMatched = await bcrypt.compare(oldPassword, result[0].pass);
+        if (!isMatched) {
+            res.send({
+                code: 2,
+                codeMessage: "incorrect-password",
+                details: "Old password is incorrect."
+            });
+            return;
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const sqlUpdate = "UPDATE users SET pass = ? WHERE user_id = ?";
+        db.query(sqlUpdate, [hashedPassword, user_id], (err, result) => {
+            if (err || result.affectedRows === 0) {
+                res.send({
+                    code: 0,
+                    codeMessage: "update-failed",
+                    details: "Password update failed."
+                });
+            } else {
+                res.send({
+                    code: 1,
+                    codeMessage: "password-updated",
+                    details: "Password updated successfully."
+                });
+            }
+        });
+    });
+});
 
 function toMySQLDateTime(jsDate) {
     const pad = n => n < 10 ? '0' + n : n;
