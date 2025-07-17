@@ -13,22 +13,8 @@ const port = 4000;
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(bodyParser.json());
-const allowedOrigins = [
-    "https://ipt-garcia.vercel.app",
-    "http://localhost:4000", 
-    "http://localhost:3000"
-];
-
 app.use(cors({
-    origin: function(origin, callback) {
-        // allow requests with no origin (like mobile apps, curl, etc.)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        } else {
-            return callback(new Error("Not allowed by CORS"));
-        }
-    },
+    origin: true,
     credentials: true
 }));
 
